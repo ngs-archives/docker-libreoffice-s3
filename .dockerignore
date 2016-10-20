@@ -1,4 +1,6 @@
 *
 !fonts/*.otf
+!vendor
+!Godeps/Godeps.json
 !*.go
 !*.sh
