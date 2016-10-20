@@ -147,7 +147,12 @@ func runCommand(req requestPayload) {
 	if method == "" {
 		method = "POST"
 	}
-	json := responseJSONFromFile(tmpfile)
+	pdf, err := os.Open(strings.TrimSuffix(tmpfile.Name(), filepath.Ext(tmpfile.Name())) + ".pdf")
+	if err != nil {
+		log.Fatal("Failed opening PDF file %v", err)
+	}
+	defer pdf.Close()
+	json := responseJSONFromFile(pdf)
 	_, err = http.NewRequest(method, req.CallbackURL, bytes.NewBuffer(json))
 	if err != nil {
 		log.Fatalf("Error sending callback %v", err)
