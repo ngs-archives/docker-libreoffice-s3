@@ -13,6 +13,8 @@ docker run -p 8080:8080 \
   -e AWS_REGION=ap-northeast-1 \
   -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
   -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
+  -e BUGSNAG_API_KEY=$BUGSNAG_API_KEY \
+  -e ENV=production \
   --rm atsnngs/libreoffice-s3
 
 curl \
@@ -33,6 +35,7 @@ The callback payload would be like:
   "thumbnails": {
     "preview": {
       "content_hash": "2bd4e36a5dbd21ea859c44dfbc80f1e4",
+      "content_type": "application/pdf",
       "width": 500,
       "height": 500
     }

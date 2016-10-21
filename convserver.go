@@ -18,6 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	bugsnag "github.com/bugsnag/bugsnag-go"
 )
 
 type requestPayload struct {
@@ -43,6 +44,16 @@ type fileResponsePayload struct {
 }
 
 func main() {
+	releaseStage := os.Getenv("ENV")
+	if releaseStage == "" {
+		releaseStage = "development"
+	}
+	if bugsnagKey := os.Getenv("BUGSNAG_API_KEY"); bugsnagKey != "" {
+		bugsnag.Configure(bugsnag.Configuration{
+			APIKey:       bugsnagKey,
+			ReleaseStage: releaseStage,
+		})
+	}
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			http.Error(w, "We don't accept "+r.Method+" requests", http.StatusBadRequest)
@@ -62,7 +73,9 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	err := http.ListenAndServe(":"+port, nil)
+	bugsnag.Notify(err)
+	log.Fatal(err)
 }
 
 func convertPreiviewKey(orgKey string) string {
@@ -147,34 +160,48 @@ func sendCallback(method string, url string, json []byte) error {
 }
 
 func runCommand(req requestPayload) {
+	defer bugsnag.Recover()
+	bugsnagMetadata := bugsnag.MetaData{
+		"req": {
+			"Bucket":             req.Bucket,
+			"Key":                req.Key,
+			"CallbackURL":        req.CallbackURL,
+			"CallbackHTTPMethod": req.CallbackHTTPMethod,
+		},
+	}
 	tmpfile, err := ioutil.TempFile("", req.Key)
 	if err != nil {
-		log.Fatalf("Error creating tempfile %v", err)
+		bugsnag.Notify(err, bugsnagMetadata)
+		return
 	}
 
 	sess := session.New()
 	dl := s3manager.NewDownloader(sess)
 	fs, err := os.Create(tmpfile.Name())
 	if err != nil {
-		log.Fatalf("Error creating tempfile %v", err)
+		bugsnag.Notify(err, bugsnagMetadata)
+		return
 	}
 	_, err = dl.Download(fs, &s3.GetObjectInput{
 		Bucket: &req.Bucket,
 		Key:    &req.Key,
 	})
 	if err != nil {
-		log.Fatalf("Error downloading file %v %v %v", req.Bucket, req.Key, err)
+		bugsnag.Notify(err, bugsnagMetadata)
+		return
 	}
 	defer os.Remove(tmpfile.Name())
 
 	err = runWriter(tmpfile.Name())
 	if err != nil {
-		log.Fatalf("Error writing PDF: %v", err)
+		bugsnag.Notify(err, bugsnagMetadata)
+		return
 	}
 
 	pdf, err := os.Open(strings.TrimSuffix(tmpfile.Name(), filepath.Ext(tmpfile.Name())) + ".pdf")
 	if err != nil {
-		log.Fatal("Failed opening PDF file %v", err)
+		bugsnag.Notify(err, bugsnagMetadata)
+		return
 	}
 	defer pdf.Close()
 
@@ -192,6 +219,7 @@ func runCommand(req requestPayload) {
 	json := responseJSONFromFile(pdf)
 	err = sendCallback(req.CallbackHTTPMethod, req.CallbackURL, json)
 	if err != nil {
-		log.Fatal("Error sending callback %v", err)
+		bugsnag.Notify(err, bugsnagMetadata)
+		return
 	}
 }

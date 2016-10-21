@@ -1,5 +1,5 @@
 {
-	"ImportPath": "github.com/oneteam-dev/docker-libreoffice-s3",
+	"ImportPath": "github.com/ngs/docker-libreoffice-s3",
 	"GoVersion": "go1.7",
 	"GodepVersion": "v74",
 	"Deps": [
@@ -139,6 +139,21 @@
 			"Rev": "1a651d9028d1203f4a0ba9fee91b207536cd4ca2"
 		},
 		{
+			"ImportPath": "github.com/bugsnag/bugsnag-go",
+			"Comment": "v1.0.5-35-g718a5c3",
+			"Rev": "718a5c3648c101c24adc20b7d3fe0be7af35a17a"
+		},
+		{
+			"ImportPath": "github.com/bugsnag/bugsnag-go/errors",
+			"Comment": "v1.0.5-35-g718a5c3",
+			"Rev": "718a5c3648c101c24adc20b7d3fe0be7af35a17a"
+		},
+		{
+			"ImportPath": "github.com/bugsnag/panicwrap",
+			"Comment": "1.1.0-4-gaa7703c",
+			"Rev": "aa7703c9414b36d4e9b2e42e6c704d0bfae7db64"
+		},
+		{
 			"ImportPath": "github.com/go-ini/ini",
 			"Comment": "v1.21.1",
 			"Rev": "6e4869b434bd001f6983749881c7ead3545887d8"
@@ -147,6 +162,10 @@
 			"ImportPath": "github.com/jmespath/go-jmespath",
 			"Comment": "0.2.2-14-gbd40a43",
 			"Rev": "bd40a432e4c76585ef6b72d3fd96fb9b6dc7b68d"
+		},
+		{
+			"ImportPath": "github.com/kardianos/osext",
+			"Rev": "c2c54e542fb797ad986b31721e1baedf214ca413"
 		}
 	]
 }
