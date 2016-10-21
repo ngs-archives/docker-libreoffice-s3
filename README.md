@@ -2,6 +2,7 @@ docker-libreoffice-s3
 =====================
 
 [![](https://img.shields.io/docker/automated/atsnngs/libreoffice-s3.svg)](https://hub.docker.com/r/atsnngs/libreoffice-s3/)
+[![CircleCI](https://circleci.com/gh/ngs/docker-libreoffice-s3.svg?style=svg)](https://circleci.com/gh/ngs/docker-libreoffice-s3)
 
 
 Usage
