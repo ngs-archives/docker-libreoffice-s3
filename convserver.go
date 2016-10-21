@@ -177,12 +177,14 @@ func runCommand(req requestPayload) {
 	defer pdf.Close()
 
 	destKey := convertPreiviewKey(req.Key)
+	contentType := "application/pdf"
 
 	ul := s3manager.NewUploader(sess)
 	_, err = ul.Upload(&s3manager.UploadInput{
-		Bucket: &req.Bucket,
-		Key:    &destKey,
-		Body:   pdf,
+		Bucket:      &req.Bucket,
+		Key:         &destKey,
+		Body:        pdf,
+		ContentType: &contentType,
 	})
 
 	json := responseJSONFromFile(pdf)
