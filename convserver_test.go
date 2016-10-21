@@ -7,7 +7,7 @@ import (
 
 func TestConvertPreiviewKey(t *testing.T) {
 	actual := convertPreiviewKey("/foo/bar/baz.qux")
-	expected := "/foo/bar/baz-preview.qux"
+	expected := "/foo/bar/baz-preview.pdf"
 	if actual != expected {
 		t.Errorf("Expected %v but got %v", expected, actual)
 	}

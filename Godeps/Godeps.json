@@ -1,10 +1,7 @@
 {
-	"ImportPath": "github.com/ngs/docker-libreoffice-s3",
+	"ImportPath": "github.com/oneteam-dev/docker-libreoffice-s3",
 	"GoVersion": "go1.7",
 	"GodepVersion": "v74",
-	"Packages": [
-		"./..."
-	],
 	"Deps": [
 		{
 			"ImportPath": "github.com/aws/aws-sdk-go/aws",
@@ -32,7 +29,37 @@
 			"Rev": "1a651d9028d1203f4a0ba9fee91b207536cd4ca2"
 		},
 		{
+			"ImportPath": "github.com/aws/aws-sdk-go/aws/corehandlers",
+			"Comment": "v1.4.19",
+			"Rev": "1a651d9028d1203f4a0ba9fee91b207536cd4ca2"
+		},
+		{
 			"ImportPath": "github.com/aws/aws-sdk-go/aws/credentials",
+			"Comment": "v1.4.19",
+			"Rev": "1a651d9028d1203f4a0ba9fee91b207536cd4ca2"
+		},
+		{
+			"ImportPath": "github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds",
+			"Comment": "v1.4.19",
+			"Rev": "1a651d9028d1203f4a0ba9fee91b207536cd4ca2"
+		},
+		{
+			"ImportPath": "github.com/aws/aws-sdk-go/aws/credentials/endpointcreds",
+			"Comment": "v1.4.19",
+			"Rev": "1a651d9028d1203f4a0ba9fee91b207536cd4ca2"
+		},
+		{
+			"ImportPath": "github.com/aws/aws-sdk-go/aws/credentials/stscreds",
+			"Comment": "v1.4.19",
+			"Rev": "1a651d9028d1203f4a0ba9fee91b207536cd4ca2"
+		},
+		{
+			"ImportPath": "github.com/aws/aws-sdk-go/aws/defaults",
+			"Comment": "v1.4.19",
+			"Rev": "1a651d9028d1203f4a0ba9fee91b207536cd4ca2"
+		},
+		{
+			"ImportPath": "github.com/aws/aws-sdk-go/aws/ec2metadata",
 			"Comment": "v1.4.19",
 			"Rev": "1a651d9028d1203f4a0ba9fee91b207536cd4ca2"
 		},
@@ -42,7 +69,17 @@
 			"Rev": "1a651d9028d1203f4a0ba9fee91b207536cd4ca2"
 		},
 		{
+			"ImportPath": "github.com/aws/aws-sdk-go/aws/session",
+			"Comment": "v1.4.19",
+			"Rev": "1a651d9028d1203f4a0ba9fee91b207536cd4ca2"
+		},
+		{
 			"ImportPath": "github.com/aws/aws-sdk-go/aws/signer/v4",
+			"Comment": "v1.4.19",
+			"Rev": "1a651d9028d1203f4a0ba9fee91b207536cd4ca2"
+		},
+		{
+			"ImportPath": "github.com/aws/aws-sdk-go/private/endpoints",
 			"Comment": "v1.4.19",
 			"Rev": "1a651d9028d1203f4a0ba9fee91b207536cd4ca2"
 		},
@@ -93,6 +130,11 @@
 		},
 		{
 			"ImportPath": "github.com/aws/aws-sdk-go/service/s3/s3manager",
+			"Comment": "v1.4.19",
+			"Rev": "1a651d9028d1203f4a0ba9fee91b207536cd4ca2"
+		},
+		{
+			"ImportPath": "github.com/aws/aws-sdk-go/service/sts",
 			"Comment": "v1.4.19",
 			"Rev": "1a651d9028d1203f4a0ba9fee91b207536cd4ca2"
 		},

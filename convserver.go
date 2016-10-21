@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -14,6 +15,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
@@ -46,13 +48,14 @@ func main() {
 			return
 		}
 		var req requestPayload
-		var bytes []byte
-		r.Body.Read(bytes)
-		if err := json.Unmarshal(bytes, &req); err != nil {
+		decoder := json.NewDecoder(r.Body)
+		if err := decoder.Decode(&req); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+		defer r.Body.Close()
 		go runCommand(req)
+		fmt.Fprintf(w, "OK")
 	})
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -63,7 +66,11 @@ func main() {
 
 func convertPreiviewKey(orgKey string) string {
 	ext := filepath.Ext(orgKey)
-	return strings.TrimSuffix(orgKey, ext) + "-preview" + ext
+	suffix := ext
+	if ext != "" {
+		suffix = ".pdf"
+	}
+	return strings.TrimSuffix(orgKey, ext) + "-preview" + suffix
 }
 
 // http://dev.pawelsz.eu/2014/11/google-golang-compute-md5-of-file.html
@@ -103,58 +110,84 @@ func responseJSONFromFile(file *os.File) []byte {
 	return b
 }
 
+func runWriter(filename string) error {
+	cmd := exec.Command("lowriter",
+		"--invisible",
+		"--convert-to",
+		"pdf:writer_pdf_Export",
+		"--outdir",
+		filepath.Dir(filename),
+		filename)
+
+	err := cmd.Start()
+	if err != nil {
+		return err
+	}
+	err = cmd.Wait()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func sendCallback(method string, url string, json []byte) error {
+	if method == "" {
+		method = "POST"
+	}
+	req, err := http.NewRequest(method, url, bytes.NewBuffer(json))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}
+	_, err = client.Do(req)
+	return err
+}
+
 func runCommand(req requestPayload) {
 	tmpfile, err := ioutil.TempFile("", req.Key)
 	if err != nil {
 		log.Fatalf("Error creating tempfile %v", err)
 	}
 
-	dl := s3manager.NewDownloader(nil)
+	sess := session.New()
+	dl := s3manager.NewDownloader(sess)
 	fs, err := os.Create(tmpfile.Name())
+	if err != nil {
+		log.Fatalf("Error creating tempfile %v", err)
+	}
 	_, err = dl.Download(fs, &s3.GetObjectInput{
 		Bucket: &req.Bucket,
 		Key:    &req.Key,
 	})
+	if err != nil {
+		log.Fatalf("Error downloading file %v %v %v", req.Bucket, req.Key, err)
+	}
 	defer os.Remove(tmpfile.Name())
 
-	cmd := exec.Command("lowriter",
-		"--invisible",
-		"--convert-to",
-		"pdf:writer_pdf_Export",
-		"--outdir",
-		filepath.Dir(tmpfile.Name()),
-		tmpfile.Name())
-
-	err = cmd.Start()
+	err = runWriter(tmpfile.Name())
 	if err != nil {
-		log.Fatalf("Error starting: %v", err)
-	}
-	err = cmd.Wait()
-	if err != nil {
-		log.Fatalf("Error starting: %v", err)
+		log.Fatalf("Error writing PDF: %v", err)
 	}
 
-	destKey := convertPreiviewKey(req.Key)
-
-	ul := s3manager.NewUploader(nil)
-	_, err = ul.Upload(&s3manager.UploadInput{
-		Bucket: &req.Bucket,
-		Key:    &destKey,
-		Body:   tmpfile,
-	})
-
-	method := req.CallbackHTTPMethod
-	if method == "" {
-		method = "POST"
-	}
 	pdf, err := os.Open(strings.TrimSuffix(tmpfile.Name(), filepath.Ext(tmpfile.Name())) + ".pdf")
 	if err != nil {
 		log.Fatal("Failed opening PDF file %v", err)
 	}
 	defer pdf.Close()
+
+	destKey := convertPreiviewKey(req.Key)
+
+	ul := s3manager.NewUploader(sess)
+	_, err = ul.Upload(&s3manager.UploadInput{
+		Bucket: &req.Bucket,
+		Key:    &destKey,
+		Body:   pdf,
+	})
+
 	json := responseJSONFromFile(pdf)
-	_, err = http.NewRequest(method, req.CallbackURL, bytes.NewBuffer(json))
+	err = sendCallback(req.CallbackHTTPMethod, req.CallbackURL, json)
 	if err != nil {
-		log.Fatalf("Error sending callback %v", err)
+		log.Fatal("Error sending callback %v", err)
 	}
 }
