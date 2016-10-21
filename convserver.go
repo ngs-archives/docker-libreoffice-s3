@@ -37,6 +37,7 @@ type thumbnailsResponsePayload struct {
 
 type fileResponsePayload struct {
 	ContentHash string `json:"content_hash"`
+	ContentType string `json:"content_type"`
 	Width       int    `json:"width"`
 	Height      int    `json:"height"`
 }
@@ -100,6 +101,7 @@ func responseJSONFromFile(file *os.File) []byte {
 		Status: "completed",
 		Thumbnails: thumbnailsResponsePayload{
 			Preview: fileResponsePayload{
+				ContentType: "application/pdf",
 				ContentHash: hash,
 				Width:       500, // FIX
 				Height:      500, // ME
