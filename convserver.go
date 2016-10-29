@@ -159,7 +159,7 @@ func sendCallback(method string, url string, json []byte) error {
 	return err
 }
 
-func runCommand(req requestPayload) {
+func runCommand(req requestPayload) error {
 	defer bugsnag.Recover()
 	bugsnagMetadata := bugsnag.MetaData{
 		"req": {
@@ -169,10 +169,15 @@ func runCommand(req requestPayload) {
 			"CallbackHTTPMethod": req.CallbackHTTPMethod,
 		},
 	}
-	tmpfile, err := ioutil.TempFile("", req.Key)
+	tmpfile, err := ioutil.TempFile("", strings.Replace(req.Key, "/", "_", -1))
 	if err != nil {
 		bugsnag.Notify(err, bugsnagMetadata)
-		return
+		return err
+	}
+
+	if err != nil {
+		bugsnag.Notify(err, bugsnagMetadata)
+		return err
 	}
 
 	sess := session.New()
@@ -180,7 +185,7 @@ func runCommand(req requestPayload) {
 	fs, err := os.Create(tmpfile.Name())
 	if err != nil {
 		bugsnag.Notify(err, bugsnagMetadata)
-		return
+		return err
 	}
 	_, err = dl.Download(fs, &s3.GetObjectInput{
 		Bucket: &req.Bucket,
@@ -188,20 +193,20 @@ func runCommand(req requestPayload) {
 	})
 	if err != nil {
 		bugsnag.Notify(err, bugsnagMetadata)
-		return
+		return err
 	}
 	defer os.Remove(tmpfile.Name())
 
 	err = runWriter(tmpfile.Name())
 	if err != nil {
 		bugsnag.Notify(err, bugsnagMetadata)
-		return
+		return err
 	}
 
 	pdf, err := os.Open(strings.TrimSuffix(tmpfile.Name(), filepath.Ext(tmpfile.Name())) + ".pdf")
 	if err != nil {
 		bugsnag.Notify(err, bugsnagMetadata)
-		return
+		return err
 	}
 	defer pdf.Close()
 
@@ -220,6 +225,7 @@ func runCommand(req requestPayload) {
 	err = sendCallback(req.CallbackHTTPMethod, req.CallbackURL, json)
 	if err != nil {
 		bugsnag.Notify(err, bugsnagMetadata)
-		return
+		return err
 	}
+	return nil
 }
