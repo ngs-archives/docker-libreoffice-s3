@@ -37,6 +37,8 @@ func TestResponseJSONFromFile(t *testing.T) {
 
 func TestRunCommand(t *testing.T) {
 	os.Setenv("AWS_REGION", "us-east-1")
+	os.Setenv("AWS_ACCESS_KEY_ID", "foo")
+	os.Setenv("AWS_SECRET_ACCESS_KEY", "bar")
 	defer gock.Off()
 	gock.New("https://test-bucket.s3.amazonaws.com").
 		Get("/foo/bar/baz.pptx").
