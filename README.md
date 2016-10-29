@@ -37,11 +37,10 @@ The callback payload would be like:
     "preview": {
       "content_hash": "2bd4e36a5dbd21ea859c44dfbc80f1e4",
       "content_type": "application/pdf",
-      "width": 500,
-      "height": 500
+      "content_size": 12440,
+      "width": 842,
+      "height": 595
     }
   }
 }
 ```
-
-`width` and `height` are fixed number for now :bow:

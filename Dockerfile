@@ -1,7 +1,7 @@
 FROM alpine:latest
 MAINTAINER Atsushi Nagase<a@ngs.io>
 
-RUN apk --no-cache add libreoffice curl go
+RUN apk --no-cache add libreoffice curl go poppler-utils
 
 WORKDIR /var/tmp
 

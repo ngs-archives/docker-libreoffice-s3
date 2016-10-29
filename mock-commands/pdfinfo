@@ -1,0 +1,20 @@
+#!/bin/sh
+
+echo '
+Author:         sata
+Creator:        Calc
+Producer:       LibreOffice 5.0
+CreationDate:   Fri Oct 21 12:52:28 2016 JST
+Tagged:         no
+UserProperties: no
+Suspects:       no
+Form:           none
+JavaScript:     no
+Pages:          15
+Encrypted:      no
+Page size:      842 x 595 pts (A4)
+Page rot:       0
+File size:      1396784 bytes
+Optimized:      no
+PDF version:    1.4
+'

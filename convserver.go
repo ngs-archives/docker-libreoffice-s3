@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -13,6 +14,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -20,6 +23,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	bugsnag "github.com/bugsnag/bugsnag-go"
 )
+
+var pdfInfoRegexp = regexp.MustCompile("Page size:\\s+(\\d+) x (\\d+) pts")
 
 type requestPayload struct {
 	Bucket             string `json:"bucket"`
@@ -119,6 +124,10 @@ func responseJSONFromFile(file *os.File) ([]byte, error) {
 		return []byte{}, err
 	}
 	size := int(fi.Size())
+	w, h, err := pdfSize(file.Name())
+	if err != nil {
+		return []byte{}, err
+	}
 	payload := responsePayload{
 		Status: "completed",
 		Thumbnails: thumbnailsResponsePayload{
@@ -126,8 +135,8 @@ func responseJSONFromFile(file *os.File) ([]byte, error) {
 				ContentType: "application/pdf",
 				ContentHash: hash,
 				ContentSize: size,
-				Width:       500, // FIX
-				Height:      500, // ME
+				Width:       w,
+				Height:      h,
 			},
 		},
 	}
@@ -156,6 +165,27 @@ func runWriter(filename string) error {
 		return err
 	}
 	return nil
+}
+
+func pdfSize(filename string) (int, int, error) {
+	bin := os.Getenv("PDF_INFO_PATH")
+	if bin == "" {
+		bin = "pdfinfo"
+	}
+	cmd := exec.Command(bin, filename)
+
+	out, err := cmd.Output()
+	if err != nil {
+		return 0, 0, err
+	}
+	m := pdfInfoRegexp.FindAllStringSubmatch(string(out), 1)
+	if len(m) == 0 {
+		return 0, 0, errors.New("Invalid pdfinfo output")
+	}
+	line := m[0]
+	w, _ := strconv.Atoi(line[1])
+	h, _ := strconv.Atoi(line[2])
+	return w, h, nil
 }
 
 func sendCallback(method string, url string, json []byte) error {

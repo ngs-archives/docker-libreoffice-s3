@@ -26,13 +26,14 @@ func TestConvertPreiviewKey2(t *testing.T) {
 }
 
 func TestResponseJSONFromFile(t *testing.T) {
+	os.Setenv("PDF_INFO_PATH", "mock-commands/pdfinfo")
 	file, err := os.Open(".gitignore")
 	if err != nil {
 		t.Errorf("Failed to open test file %v", err)
 	}
 	json, _ := responseJSONFromFile(file)
 	actual := string(json)
-	expected := `{"status":"completed","thumbnails":{"preview":{"content_hash":"b0214b0ba0fa51ebf8bd66ba20a82ee9","content_type":"application/pdf","content_size":24,"width":500,"height":500}}}`
+	expected := `{"status":"completed","thumbnails":{"preview":{"content_hash":"b0214b0ba0fa51ebf8bd66ba20a82ee9","content_type":"application/pdf","content_size":24,"width":842,"height":595}}}`
 	if actual != expected {
 		t.Errorf("Expected %v but got %v", expected, actual)
 	}
@@ -99,5 +100,40 @@ func TestSendCallbackError(t *testing.T) {
 
 	if !(err != nil && err.Error() == expected) {
 		t.Errorf(`Expected "%v" but got "%v"`, expected, err)
+	}
+}
+
+func TestPDFSize(t *testing.T) {
+	os.Setenv("PDF_INFO_PATH", "mock-commands/pdfinfo")
+	w, h, err := pdfSize("/tmp/foo")
+	for _, test := range []struct {
+		expected interface{}
+		actual   interface{}
+	}{
+		{err, nil},
+		{842, w},
+		{595, h},
+	} {
+		if test.expected != test.actual {
+			t.Errorf("Expected %v but got %v", test.expected, test.actual)
+		}
+	}
+
+}
+
+func TestParsePDFInfoNoMatch(t *testing.T) {
+	os.Setenv("PDF_INFO_PATH", "/bin/echo")
+	w, h, err := pdfSize("/tmp/foo")
+	for _, test := range []struct {
+		expected interface{}
+		actual   interface{}
+	}{
+		{"Invalid pdfinfo output", err.Error()},
+		{0, w},
+		{0, h},
+	} {
+		if test.expected != test.actual {
+			t.Errorf("Expected %v but got %v", test.expected, test.actual)
+		}
 	}
 }
