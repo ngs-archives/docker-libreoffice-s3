@@ -39,6 +39,7 @@ type thumbnailsResponsePayload struct {
 type fileResponsePayload struct {
 	ContentHash string `json:"content_hash"`
 	ContentType string `json:"content_type"`
+	ContentSize int    `json:"content_size"`
 	Width       int    `json:"width"`
 	Height      int    `json:"height"`
 }
@@ -104,25 +105,37 @@ func computeMd5(filePath string) ([]byte, error) {
 	return hash.Sum(result), nil
 }
 
-func responseJSONFromFile(file *os.File) []byte {
-	hashBytes, _ := computeMd5(file.Name())
+func responseJSONFromFile(file *os.File) ([]byte, error) {
+	hashBytes, err := computeMd5(file.Name())
+	if err != nil {
+		return []byte{}, err
+	}
 	hash := hex.EncodeToString(hashBytes)
 	if hash == "" {
 		hash = "0"
 	}
+	fi, err := file.Stat()
+	if err != nil {
+		return []byte{}, err
+	}
+	size := int(fi.Size())
 	payload := responsePayload{
 		Status: "completed",
 		Thumbnails: thumbnailsResponsePayload{
 			Preview: fileResponsePayload{
 				ContentType: "application/pdf",
 				ContentHash: hash,
+				ContentSize: size,
 				Width:       500, // FIX
 				Height:      500, // ME
 			},
 		},
 	}
-	b, _ := json.Marshal(&payload)
-	return b
+	b, err := json.Marshal(&payload)
+	if err != nil {
+		return []byte{}, err
+	}
+	return b, nil
 }
 
 func runWriter(filename string) error {
@@ -229,7 +242,11 @@ func runCommand(req requestPayload) error {
 		ContentType: &contentType,
 	})
 
-	json := responseJSONFromFile(pdf)
+	json, err := responseJSONFromFile(pdf)
+	if err != nil {
+		bugsnag.Notify(err, bugsnagMetadata)
+		return err
+	}
 	err = sendCallback(req.CallbackHTTPMethod, req.CallbackURL, json)
 	if err != nil {
 		bugsnag.Notify(err, bugsnagMetadata)

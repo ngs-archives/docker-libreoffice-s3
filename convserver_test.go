@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"io/ioutil"
 	"os"
 	"testing"
 
@@ -28,10 +30,29 @@ func TestResponseJSONFromFile(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to open test file %v", err)
 	}
-	actual := string(responseJSONFromFile(file))
-	expected := `{"status":"completed","thumbnails":{"preview":{"content_hash":"b0214b0ba0fa51ebf8bd66ba20a82ee9","content_type":"application/pdf","width":500,"height":500}}}`
+	json, _ := responseJSONFromFile(file)
+	actual := string(json)
+	expected := `{"status":"completed","thumbnails":{"preview":{"content_hash":"b0214b0ba0fa51ebf8bd66ba20a82ee9","content_type":"application/pdf","content_size":24,"width":500,"height":500}}}`
 	if actual != expected {
 		t.Errorf("Expected %v but got %v", expected, actual)
+	}
+}
+
+func TestResponseJSONFromFileError(t *testing.T) {
+	file, _ := ioutil.TempFile("", "fail")
+	os.Remove(file.Name())
+	json, err := responseJSONFromFile(file)
+	for _, test := range []struct {
+		expected interface{}
+		actual   interface{}
+	}{
+		{fmt.Sprintf("open %v: no such file or directory", file.Name()), err.Error()},
+		{"", string(json)},
+	} {
+		if test.actual != test.expected {
+			t.Errorf("Expected %v but got %v", test.expected, test.actual)
+		}
+
 	}
 }
 
