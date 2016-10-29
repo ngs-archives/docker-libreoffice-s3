@@ -56,3 +56,27 @@ func TestRunCommand(t *testing.T) {
 		t.Errorf(`Expected "%v" but got "%v"`, expected, err)
 	}
 }
+
+func TestSendCallback(t *testing.T) {
+	gock.New("http://foo-internal-api.bar.baz").
+		Patch("/path/to/callback").
+		Reply(200)
+	err := sendCallback("PATCH", "http://foo-internal-api.bar.baz/path/to/callback", []byte(`{"status":"ok"}`))
+	if err != nil {
+		t.Errorf("Expected nil but got %v", err)
+	}
+}
+
+func TestSendCallbackError(t *testing.T) {
+	gock.New("http://foo-internal-api.bar.baz").
+		Patch("/path/to/callback").
+		Reply(400).
+		BodyString("Oh")
+
+	err := sendCallback("PATCH", "http://foo-internal-api.bar.baz/path/to/callback", []byte(`{"status":"ok"}`))
+	expected := "Error sending callback: 400 Oh"
+
+	if !(err != nil && err.Error() == expected) {
+		t.Errorf(`Expected "%v" but got "%v"`, expected, err)
+	}
+}

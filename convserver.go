@@ -155,7 +155,15 @@ func sendCallback(method string, url string, json []byte) error {
 	}
 	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{}
-	_, err = client.Do(req)
+	res, err := client.Do(req)
+	status := res.StatusCode
+	if !(status >= 200 && status < 300) {
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			return err
+		}
+		return fmt.Errorf("Error sending callback: %v %v", status, string(body))
+	}
 	return err
 }
 
