@@ -15,6 +15,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -50,6 +51,7 @@ type fileResponsePayload struct {
 }
 
 func main() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
 	releaseStage := os.Getenv("ENV")
 	if releaseStage == "" {
 		releaseStage = "development"
