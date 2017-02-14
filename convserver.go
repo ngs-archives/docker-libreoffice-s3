@@ -36,8 +36,8 @@ type requestPayload struct {
 }
 
 type responsePayload struct {
-	Status     string                    `json:"status"`
-	Thumbnails thumbnailsResponsePayload `json:"thumbnails"`
+	Status     string                     `json:"status"`
+	Thumbnails *thumbnailsResponsePayload `json:"thumbnails,omitempty"`
 }
 type thumbnailsResponsePayload struct {
 	Preview fileResponsePayload `json:"preview"`
@@ -113,6 +113,17 @@ func computeMd5(filePath string) ([]byte, error) {
 	return hash.Sum(result), nil
 }
 
+func incompletedJSON() ([]byte, error) {
+	payload := responsePayload{
+		Status: "completed",
+	}
+	b, err := json.Marshal(&payload)
+	if err != nil {
+		return []byte{}, err
+	}
+	return b, nil
+}
+
 func responseJSONFromFile(file *os.File) ([]byte, error) {
 	hashBytes, err := computeMd5(file.Name())
 	if err != nil {
@@ -133,7 +144,7 @@ func responseJSONFromFile(file *os.File) ([]byte, error) {
 	}
 	payload := responsePayload{
 		Status: "completed",
-		Thumbnails: thumbnailsResponsePayload{
+		Thumbnails: &thumbnailsResponsePayload{
 			Preview: fileResponsePayload{
 				ContentType: "application/pdf",
 				ContentHash: hash,
@@ -217,9 +228,8 @@ func sendCallback(method string, url string, json []byte) error {
 	return err
 }
 
-func runCommand(req requestPayload) error {
-	defer bugsnag.Recover()
-	bugsnagMetadata := bugsnag.MetaData{
+func bugsnagMetadata(req requestPayload) bugsnag.MetaData {
+	return bugsnag.MetaData{
 		"req": {
 			"Bucket":             req.Bucket,
 			"Key":                req.Key,
@@ -227,44 +237,55 @@ func runCommand(req requestPayload) error {
 			"CallbackHTTPMethod": req.CallbackHTTPMethod,
 		},
 	}
+}
+
+func runCommand(req requestPayload) error {
+	defer bugsnag.Recover()
+	json, err := convertAndUpload(req)
+	if err != nil {
+		return err
+	}
+	err = sendCallback(req.CallbackHTTPMethod, req.CallbackURL, json)
+	if err != nil {
+		bugsnag.Notify(err, bugsnagMetadata(req))
+		return err
+	}
+	return nil
+}
+
+func convertAndUpload(req requestPayload) ([]byte, error) {
 	tmpfile, err := ioutil.TempFile("", strings.Replace(req.Key, "/", "_", -1))
 	if err != nil {
-		bugsnag.Notify(err, bugsnagMetadata)
-		return err
+		bugsnag.Notify(err, bugsnagMetadata(req))
+		return incompletedJSON()
 	}
-
-	if err != nil {
-		bugsnag.Notify(err, bugsnagMetadata)
-		return err
-	}
-
 	sess := session.New()
 	dl := s3manager.NewDownloader(sess)
 	fs, err := os.Create(tmpfile.Name())
 	if err != nil {
-		bugsnag.Notify(err, bugsnagMetadata)
-		return err
+		bugsnag.Notify(err, bugsnagMetadata(req))
+		return incompletedJSON()
 	}
 	_, err = dl.Download(fs, &s3.GetObjectInput{
 		Bucket: &req.Bucket,
 		Key:    &req.Key,
 	})
 	if err != nil {
-		bugsnag.Notify(err, bugsnagMetadata)
-		return err
+		bugsnag.Notify(err, bugsnagMetadata(req))
+		return incompletedJSON()
 	}
 	defer os.Remove(tmpfile.Name())
 
 	err = runWriter(tmpfile.Name())
 	if err != nil {
-		bugsnag.Notify(err, bugsnagMetadata)
-		return err
+		bugsnag.Notify(err, bugsnagMetadata(req))
+		return incompletedJSON()
 	}
 
 	pdf, err := os.Open(strings.TrimSuffix(tmpfile.Name(), filepath.Ext(tmpfile.Name())) + ".pdf")
 	if err != nil {
-		bugsnag.Notify(err, bugsnagMetadata)
-		return err
+		bugsnag.Notify(err, bugsnagMetadata(req))
+		return incompletedJSON()
 	}
 	defer pdf.Close()
 
@@ -279,15 +300,5 @@ func runCommand(req requestPayload) error {
 		ContentType: &contentType,
 	})
 
-	json, err := responseJSONFromFile(pdf)
-	if err != nil {
-		bugsnag.Notify(err, bugsnagMetadata)
-		return err
-	}
-	err = sendCallback(req.CallbackHTTPMethod, req.CallbackURL, json)
-	if err != nil {
-		bugsnag.Notify(err, bugsnagMetadata)
-		return err
-	}
-	return nil
+	return responseJSONFromFile(pdf)
 }

@@ -57,7 +57,7 @@ func TestResponseJSONFromFileError(t *testing.T) {
 	}
 }
 
-func TestRunCommand(t *testing.T) {
+func TestConvertAndUpload(t *testing.T) {
 	os.Setenv("AWS_REGION", "us-east-1")
 	os.Setenv("AWS_ACCESS_KEY_ID", "foo")
 	os.Setenv("AWS_SECRET_ACCESS_KEY", "bar")
@@ -66,16 +66,19 @@ func TestRunCommand(t *testing.T) {
 		Get("/foo/bar/baz.pptx").
 		Reply(200)
 
-	err := runCommand(requestPayload{
+	json, err := convertAndUpload(requestPayload{
 		Bucket:             "test-bucket",
 		Key:                "foo/bar/baz.pptx",
 		CallbackURL:        "http://internal-foo-test-api.bar.baz/path/to/callback",
 		CallbackHTTPMethod: "PUT",
 	})
-	// if err != nil {
-	expected := "RequestError: send request failed\ncaused by: Get https://test-bucket.s3.amazonaws.com/foo/bar/baz.pptx: gock: cannot match any request" // FIXME
-	if err.Error() != expected {
-		t.Errorf(`Expected "%v" but got "%v"`, expected, err)
+	jsonStr := string(json)
+	expected := `{"status":"completed"}`
+	if jsonStr != expected {
+		t.Errorf("Expected %v but got %v", expected, jsonStr)
+	}
+	if err != nil {
+		t.Errorf("Expected nil but got %v", err)
 	}
 }
 
