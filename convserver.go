@@ -18,6 +18,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -157,16 +158,20 @@ func runWriter(filename string) error {
 		"--outdir",
 		filepath.Dir(filename),
 		filename)
-
 	err := cmd.Start()
 	if err != nil {
 		return err
 	}
-	err = cmd.Wait()
+	timeoutSeconds, err := strconv.Atoi(os.Getenv("CMD_TIMEOUT_SECONDS"))
 	if err != nil {
-		return err
+		timeoutSeconds = 60
 	}
-	return nil
+	timer := time.AfterFunc(time.Second*time.Duration(timeoutSeconds), func() {
+		cmd.Process.Kill()
+	})
+	err = cmd.Wait()
+	timer.Stop()
+	return err
 }
 
 func pdfSize(filename string) (int, int, error) {
